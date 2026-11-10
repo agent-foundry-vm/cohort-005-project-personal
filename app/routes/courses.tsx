@@ -21,6 +21,7 @@ import { AlertTriangle, BookOpen, Search } from "lucide-react";
 import { CourseImage } from "~/components/course-image";
 import { UserAvatar } from "~/components/user-avatar";
 import { getCurrentUserId } from "~/lib/session";
+import { getHeldCourseIds } from "~/lib/refunds.server";
 import { formatPrice } from "~/lib/utils";
 import { resolveCountry } from "~/lib/country.server";
 import { calculatePppPrice } from "~/lib/ppp";
@@ -300,8 +301,10 @@ export async function loader({ request, url }: Route.LoaderArgs) {
     { progress: number; completedLessons: number }
   >();
   if (currentUserId) {
+    const heldCourseIds = getHeldCourseIds(currentUserId);
     const enrollments = getUserEnrolledCourses(currentUserId);
     for (const enrollment of enrollments) {
+      if (heldCourseIds.has(enrollment.courseId)) continue;
       progressMap.set(enrollment.courseId, {
         progress: calculateProgress(currentUserId, enrollment.courseId, false),
         completedLessons: getCompletedLessonCount(currentUserId, enrollment.courseId),

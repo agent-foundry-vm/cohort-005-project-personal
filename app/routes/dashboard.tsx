@@ -11,6 +11,7 @@ import {
 } from "~/db/schema";
 import { eq, and, or, sql } from "drizzle-orm";
 import { getCurrentUserId } from "~/lib/session";
+import { getHeldCourseIds } from "~/lib/refunds.server";
 import { Card, CardContent, CardFooter, CardHeader } from "~/components/ui/card";
 import { Button } from "~/components/ui/button";
 import { Skeleton } from "~/components/ui/skeleton";
@@ -197,7 +198,11 @@ export async function loader({ request }: Route.LoaderArgs) {
     });
   }
 
-  const enrolledCourses = getUserEnrolledCourses(currentUserId);
+  // Courses held back by a Refund Request don't count as the learner's.
+  const heldCourseIds = getHeldCourseIds(currentUserId);
+  const enrolledCourses = getUserEnrolledCourses(currentUserId).filter(
+    (enrollment) => !heldCourseIds.has(enrollment.courseId)
+  );
 
   const coursesWithProgress = enrolledCourses.map((enrollment) => {
     const progress = calculateProgress(currentUserId, enrollment.courseId, false);

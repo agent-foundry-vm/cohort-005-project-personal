@@ -1,6 +1,7 @@
 import { Link } from "react-router";
 import type { Route } from "./+types/courses.$slug.$moduleId";
 import { getCurrentUserId } from "~/lib/session";
+import { hasCourseAccess } from "~/lib/refunds.server";
 import { db } from "~/db";
 import {
   categories,
@@ -111,17 +112,6 @@ function getModuleWithLessons(id: number) {
   return { ...mod, lessons: moduleLessons };
 }
 
-function isUserEnrolled(userId: number, courseId: number) {
-  const existing = db
-    .select()
-    .from(enrollments)
-    .where(
-      and(eq(enrollments.userId, userId), eq(enrollments.courseId, courseId))
-    )
-    .get();
-
-  return !!existing;
-}
 
 function getLessonProgressForCourse(userId: number, courseId: number) {
   const courseModules = db
@@ -192,7 +182,7 @@ export async function loader({ params, request }: Route.LoaderArgs) {
   let lessonProgressMap: Record<number, string> = {};
 
   if (currentUserId) {
-    enrolled = isUserEnrolled(currentUserId, course.id);
+    enrolled = hasCourseAccess(currentUserId, course.id);
 
     if (enrolled) {
       const progressRecords = getLessonProgressForCourse(

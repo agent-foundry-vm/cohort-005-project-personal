@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { z } from "zod";
 import type { Route } from "./+types/courses.$slug";
 import { getCurrentUserId } from "~/lib/session";
+import { getRefundHold, hasCourseAccess } from "~/lib/refunds.server";
 import { db } from "~/db";
 import {
   courses,
@@ -136,16 +137,6 @@ function getLessonCountForCourse(courseId: number) {
   return count?.count ?? 0;
 }
 
-function isUserEnrolled(userId: number, courseId: number) {
-  const enrollment = db
-    .select()
-    .from(enrollments)
-    .where(
-      and(eq(enrollments.userId, userId), eq(enrollments.courseId, courseId))
-    )
-    .get();
-  return !!enrollment;
-}
 
 function getCourseLessonIds(courseId: number): number[] {
   const courseModules = db
@@ -518,9 +509,13 @@ export async function loader({ params, request }: Route.LoaderArgs) {
   let lessonProgressMap: Record<number, string> = {};
   let nextLessonId: number | null = null;
   let refundOffer: { amount: number; lastDayInWindow: string } | null = null;
+  let refundRequestOpen = false;
 
   if (currentUserId) {
-    enrolled = isUserEnrolled(currentUserId, course.id);
+    enrolled = hasCourseAccess(currentUserId, course.id);
+    // An approved request leaves the page looking as if they never bought
+    // it; only an open one gets its own message.
+    refundRequestOpen = getRefundHold(currentUserId, course.id) === "open";
 
     if (enrolled) {
       refundOffer = getRefundOffer(currentUserId, { id: course.id });
@@ -568,6 +563,7 @@ export async function loader({ params, request }: Route.LoaderArgs) {
     ratingSummary,
     userRating,
     refundOffer,
+    refundRequestOpen,
   };
 }
 
@@ -585,7 +581,7 @@ export async function action({ params, request }: Route.ActionArgs) {
     throw data("Course not found", { status: 404 });
   }
 
-  if (!isUserEnrolled(currentUserId, course.id)) {
+  if (!hasCourseAccess(currentUserId, course.id)) {
     throw data("You must be enrolled in this course to rate it.", {
       status: 403,
     });
@@ -669,6 +665,7 @@ export default function CourseDetail({ loaderData }: Route.ComponentProps) {
     ratingSummary,
     userRating,
     refundOffer,
+    refundRequestOpen,
   } = loaderData;
   const isInstructor = currentUserId === course.instructorId;
   const [searchParams, setSearchParams] = useSearchParams();
@@ -911,6 +908,16 @@ export default function CourseDetail({ loaderData }: Route.ComponentProps) {
                     />
                   )}
                 </>
+              ) : refundRequestOpen ? (
+                <div className="rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900 dark:border-amber-900/50 dark:bg-amber-900/20 dark:text-amber-200">
+                  <p className="font-medium">Your Refund Request is open</p>
+                  <p className="mt-1">
+                    Access is paused until an Admin decides.{" "}
+                    <Link to="/settings" className="underline">
+                      See your Refund Requests
+                    </Link>
+                  </p>
+                </div>
               ) : (
                 enrollButton
               )}
@@ -1014,6 +1021,10 @@ function RequestRefund({ slug, amount }: { slug: string; amount: number }) {
       <p className="mb-3 text-xs text-muted-foreground">
         We will send {formatPrice(amount)} back to the card you paid with, once
         someone has read your note.
+      </p>
+      <p className="mb-3 rounded-md border border-amber-200 bg-amber-50 p-2 text-xs text-amber-900 dark:border-amber-900/50 dark:bg-amber-900/20 dark:text-amber-200">
+        You'll lose access to this course as soon as you send this, while we
+        review your request. If we decline it, your access comes back.
       </p>
       <fetcher.Form
         method="post"

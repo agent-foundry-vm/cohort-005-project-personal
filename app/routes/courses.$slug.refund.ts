@@ -17,6 +17,7 @@ import {
 import { and, eq, inArray, isNotNull, sql } from "drizzle-orm";
 import { parseFormData, parseParams } from "~/lib/validation";
 import { formatPrice } from "~/lib/utils";
+import { getPurchaseRefundHold, logEmail } from "~/lib/refunds.server";
 
 const REFUND_WINDOW_DAYS = 14;
 const MAX_WATCHED_HOURS = 2;
@@ -103,6 +104,8 @@ function buildRefundRequestEmail(input: {
       `We have your refund request for "${input.courseTitle}".`,
       `The refund is for ${formatPrice(input.amount)}, the amount you paid.`,
       "",
+      "While we review it, you won't have access to the course. If we decline the request, your access comes straight back.",
+      "",
       "Our team reviews every refund request by hand. You do not need to do anything else — we will email you again when it is done.",
       "",
       "— The Cadence team",
@@ -144,6 +147,11 @@ export async function action({ params, request }: Route.ActionArgs) {
     throw data("You already have an open refund request on this purchase.", {
       status: 409,
     });
+  }
+
+  // Decisions are final: an approved purchase is already being refunded.
+  if (getPurchaseRefundHold(purchase.id) === "approved") {
+    throw data("This purchase has already been refunded.", { status: 409 });
   }
 
   // A seat that came out of a team licence, and has been claimed, belongs to
@@ -223,9 +231,7 @@ export async function action({ params, request }: Route.ActionArgs) {
     amount: purchase.amountPaid,
   });
 
-  console.log(
-    `[email] to=${email.to} subject=${email.subject}\n${email.body}`
-  );
+  logEmail(email);
 
   return redirect("/settings");
 }

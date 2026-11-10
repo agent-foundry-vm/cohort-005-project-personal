@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { z } from "zod";
 import type { Route } from "./+types/courses.$slug.purchase";
 import { getCurrentUserId } from "~/lib/session";
+import { getRefundHold, hasCourseAccess } from "~/lib/refunds.server";
 import { db } from "~/db";
 import {
   courses,
@@ -296,7 +297,13 @@ export async function loader({ params, request, url }: Route.LoaderArgs) {
 
   const mode = url.searchParams.get("mode");
 
-  const enrolled = isUserEnrolled(currentUserId, course.id);
+  // While their Refund Request is open the learner can't buy the course
+  // again: the request might still be declined and give it back.
+  if (getRefundHold(currentUserId, course.id) === "open" && mode !== "team") {
+    throw redirect(`/courses/${slug}`);
+  }
+
+  const enrolled = hasCourseAccess(currentUserId, course.id);
 
   if (enrolled && mode !== "team") {
     throw redirect(`/courses/${slug}?already_enrolled=1`);
@@ -364,11 +371,18 @@ export async function action({ params, request }: Route.ActionArgs) {
     : course.price;
 
   if (parsed.data.intent === "confirm-purchase") {
-    if (isUserEnrolled(currentUserId, course.id)) {
+    if (
+      hasCourseAccess(currentUserId, course.id) ||
+      getRefundHold(currentUserId, course.id) === "open"
+    ) {
       throw redirect(`/courses/${slug}`);
     }
     createPurchase(currentUserId, course.id, pppPrice, country);
-    enrollUser(currentUserId, course.id, false, false);
+    // Buying again after an Approved Refund Request: the enrollment row was
+    // kept (with their progress), and the new purchase lifts the hold.
+    if (!isUserEnrolled(currentUserId, course.id)) {
+      enrollUser(currentUserId, course.id, false, false);
+    }
     throw redirect(`/courses/${slug}/welcome`);
   }
 
