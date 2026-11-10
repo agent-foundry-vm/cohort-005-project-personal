@@ -22,9 +22,11 @@ _Avoid_: Pending, Requested, Awaiting review
 
 **Approved Refund Request**:
 A Refund Request an Admin has accepted. Approving it is what leads to a Refund, and the learner no longer has the course unless they buy it again.
+_Avoid_: Refunded, Completed
 
 **Declined Refund Request**:
 A Refund Request an Admin has turned down. It has no Refund, the learner gets the course back straight away, and they may raise a new Refund Request.
+_Avoid_: Rejected
 
 **Refund**:
 The money returned to a learner after their Refund Request is approved. It is always the full amount they paid. A declined Refund Request has no Refund.
@@ -40,3 +42,6 @@ _Avoid_: Completed, Paid out
 
 **Failed Refund**:
 A Refund where the money couldn't be sent. The Refund Request stays approved, because the decision hasn't changed.
+
+**Chargeback**:
+A payment dispute the learner raises with their card issuer outside the platform. It is neither a Refund Request nor a Refund, and the platform does not model it.
