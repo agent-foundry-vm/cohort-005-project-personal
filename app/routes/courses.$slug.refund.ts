@@ -16,8 +16,8 @@ import {
 } from "~/db/schema";
 import { and, eq, inArray, isNotNull, sql } from "drizzle-orm";
 import { parseFormData, parseParams } from "~/lib/validation";
-import { getDiscountForCountry } from "~/lib/ppp";
 import { formatPrice } from "~/lib/utils";
+import { getPurchaseRefundHold, logEmail } from "~/lib/refunds.server";
 
 const REFUND_WINDOW_DAYS = 14;
 const MAX_WATCHED_HOURS = 2;
@@ -58,14 +58,14 @@ function getLessonIdsForCourse(courseId: number): number[] {
   return rows.map((row) => row.id);
 }
 
-function getRequestedRefund(purchaseId: number) {
+function getOpenRefundRequest(purchaseId: number) {
   return db
     .select()
     .from(refunds)
     .where(
       and(
         eq(refunds.purchaseId, purchaseId),
-        eq(refunds.status, RefundStatus.Requested)
+        eq(refunds.status, RefundStatus.Open)
       )
     )
     .get();
@@ -89,7 +89,7 @@ function lastDayOfWindow(purchasedAtIso: string): string {
  * The confirmation the learner gets in their inbox. There is no mail
  * transport wired up yet, so the built message goes to the server log.
  */
-function buildRefundRequestedEmail(input: {
+function buildRefundRequestEmail(input: {
   learnerName: string;
   learnerEmail: string;
   courseTitle: string;
@@ -104,7 +104,9 @@ function buildRefundRequestedEmail(input: {
       `We have your refund request for "${input.courseTitle}".`,
       `The refund is for ${formatPrice(input.amount)}, the amount you paid.`,
       "",
-      "Our team reviews every refund by hand. You do not need to do anything else — we will email you again when it is done.",
+      "While we review it, you won't have access to the course. If we decline the request, your access comes straight back.",
+      "",
+      "Our team reviews every refund request by hand. You do not need to do anything else — we will email you again when it is done.",
       "",
       "— The Cadence team",
     ].join("\n"),
@@ -141,10 +143,15 @@ export async function action({ params, request }: Route.ActionArgs) {
     throw data("You have not bought this course.", { status: 403 });
   }
 
-  if (getRequestedRefund(purchase.id)) {
-    throw data("You already have a refund requested on this purchase.", {
+  if (getOpenRefundRequest(purchase.id)) {
+    throw data("You already have an open refund request on this purchase.", {
       status: 409,
     });
+  }
+
+  // Decisions are final: an approved purchase is already being refunded.
+  if (getPurchaseRefundHold(purchase.id) === "approved") {
+    throw data("This purchase has already been refunded.", { status: 409 });
   }
 
   // A seat that came out of a team licence, and has been claimed, belongs to
@@ -195,15 +202,10 @@ export async function action({ params, request }: Route.ActionArgs) {
   }
 
   if (watchedSeconds >= MAX_WATCHED_HOURS * 60 * 60) {
-    throw data("You have watched too much of this course to get a refund.", {
+    throw data("You have watched too much of this course to request a refund.", {
       status: 403,
     });
   }
-
-  // A purchase made at a purchasing-power price is given back at that price,
-  // not at the list price of the course.
-  const pppDiscount = getDiscountForCountry(purchase.country);
-  const refundableAmount = pppDiscount > 0 ? purchase.amountPaid : course.price;
 
   const formData = await request.formData();
   const parsed = parseFormData(formData, refundActionSchema);
@@ -216,22 +218,20 @@ export async function action({ params, request }: Route.ActionArgs) {
     .insert(refunds)
     .values({
       purchaseId: purchase.id,
-      status: RefundStatus.Requested,
+      status: RefundStatus.Open,
       reason: parsed.data.reason,
     })
     .returning()
     .get();
 
-  const email = buildRefundRequestedEmail({
+  const email = buildRefundRequestEmail({
     learnerName: learner.name,
     learnerEmail: learner.email,
     courseTitle: course.title,
-    amount: refundableAmount,
+    amount: purchase.amountPaid,
   });
 
-  console.log(
-    `[email] to=${email.to} subject=${email.subject}\n${email.body}`
-  );
+  logEmail(email);
 
   return redirect("/settings");
 }

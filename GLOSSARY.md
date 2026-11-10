@@ -1,26 +1,47 @@
-# Course Platform
+# Cadence
 
-An online course platform where learners buy courses, watch lessons and track their progress.
+Cadence sells video courses to learners. This glossary covers the language around getting money back after a purchase.
 
 ## Language
 
+### People
+
+**Admin**:
+A Cadence staff member who runs the platform, including deciding Refund Requests.
+_Avoid_: Support, Support team, the team, Team admin
+
 ### Refunds
 
+**Refund Request**:
+A learner's ask, with their reason, to get back what they paid for a purchase. An Admin approves or declines it, and that decision is final. One purchase can have several Refund Requests over time, but only one can be undecided at once.
+_Avoid_: Refund (for the ask itself), Cancellation, Reversal, Chargeback
+
+**Open Refund Request**:
+A Refund Request no Admin has decided yet. While it is open, the learner can't view the course.
+_Avoid_: Pending, Requested, Awaiting review
+
+**Approved Refund Request**:
+A Refund Request an Admin has accepted. Approving it is what leads to a Refund, and the learner no longer has the course unless they buy it again.
+_Avoid_: Refunded, Completed
+
+**Declined Refund Request**:
+A Refund Request an Admin has turned down. It has no Refund, the learner gets the course back straight away, and they may raise a new Refund Request.
+_Avoid_: Rejected
+
 **Refund**:
-A learner's request to get back the money they paid for a Purchase. It is always in one of three states: Requested, Approved or Declined.
-_Avoid_: Cancellation, Reversal, Chargeback
+The money returned to a learner after their Refund Request is approved. It is always the full amount they paid. A declined Refund Request has no Refund.
+_Avoid_: Reversal, Chargeback, Cancellation
 
-**Requested**:
-A Refund the learner has raised that nobody has decided on yet.
-_Avoid_: Pending, open
+**Pending Refund**:
+A Refund an Admin has approved where the money hasn't been confirmed as sent yet.
+_Avoid_: Pending (for a Refund Request awaiting review)
 
-**Approved**:
-A Refund that was accepted, so the money goes back to the learner.
-_Avoid_: Refunded, completed
+**Issued Refund**:
+A Refund where the money has been confirmed as sent back to the learner.
+_Avoid_: Completed, Paid out
 
-**Declined**:
-A Refund that was turned down, so no money goes back.
-_Avoid_: Rejected, not refunded
+**Failed Refund**:
+A Refund where the money couldn't be sent. The Refund Request stays approved, because the decision hasn't changed.
 
 **Chargeback**:
-A payment dispute the learner raises with their card issuer outside the platform. It is not a Refund, and the platform does not model it.
+A payment dispute the learner raises with their card issuer outside the platform. It is neither a Refund Request nor a Refund, and the platform does not model it.

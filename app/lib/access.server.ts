@@ -11,6 +11,7 @@ import {
 import { getCurrentUserId } from "~/lib/session";
 import { resolveCountry } from "~/lib/country.server";
 import { checkPppAccess } from "~/lib/ppp";
+import { getRefundHold, type RefundHold } from "~/lib/refunds.server";
 
 function getUserById(id: number) {
   return db.select().from(users).where(eq(users.id, id)).get();
@@ -59,7 +60,10 @@ export type Access = {
   isOwningInstructor: boolean;
   /** Owning instructor or admin — the people who speak for the course. */
   isStaff: boolean;
+  /** Enrolled and not held back by a Refund Request. */
   enrolled: boolean;
+  /** Set when the learner's own Refund Request is keeping them out. */
+  refundHold: RefundHold | null;
   pppBlocked: boolean;
   pppBlockedCountry: string | null;
   pppPurchaseCountry: string | null;
@@ -77,6 +81,7 @@ const SIGNED_OUT: Access = {
   isOwningInstructor: false,
   isStaff: false,
   enrolled: false,
+  refundHold: null,
   pppBlocked: false,
   pppBlockedCountry: null,
   pppPurchaseCountry: null,
@@ -97,7 +102,12 @@ export async function getAccess(
   const isAdmin = user.role === UserRole.Admin;
   const isOwningInstructor = course?.instructorId === userId;
   const isStaff = isAdmin || isOwningInstructor;
-  const enrolled = isUserEnrolled(userId, courseId);
+  // A learner loses access the moment they raise a Refund Request, gets it
+  // back if it's declined, and keeps it lost once it's approved.
+  const refundHold = isUserEnrolled(userId, courseId)
+    ? getRefundHold(userId, courseId)
+    : null;
+  const enrolled = isUserEnrolled(userId, courseId) && refundHold === null;
 
   // PPP only restricts students who bought at a discount — staff are exempt.
   let ppp = {
@@ -124,6 +134,7 @@ export async function getAccess(
     isOwningInstructor,
     isStaff,
     enrolled,
+    refundHold,
     pppBlocked: ppp.blocked,
     pppBlockedCountry: ppp.blockedCountry,
     pppPurchaseCountry: ppp.purchaseCountry,
@@ -199,4 +210,18 @@ export async function requireInstructorOrAdmin(request: Request) {
   }
 
   return { userId, user, isAdmin: user.role === UserRole.Admin };
+}
+
+/**
+ * Throws 401 when signed out, 403 unless the user is a platform Admin.
+ */
+export async function requireAdmin(request: Request) {
+  const userId = await requireUserId(request);
+  const user = getUserById(userId);
+
+  if (!user || user.role !== UserRole.Admin) {
+    throw data("Only admins can access this page.", { status: 403 });
+  }
+
+  return { userId, user };
 }
