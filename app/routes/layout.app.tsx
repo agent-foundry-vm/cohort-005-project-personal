@@ -3,6 +3,10 @@ import type { Route } from "./+types/layout.app";
 import { Sidebar } from "~/components/sidebar";
 import { DevUI } from "~/components/dev-ui";
 import { Toaster } from "sonner";
+import {
+  useNotificationsPrototype,
+  type RoleKey,
+} from "~/components/notifications-prototype";
 import { getCurrentUserId, getDevCountry } from "~/lib/session";
 import { getCountryTierInfo, COUNTRIES } from "~/lib/ppp";
 import { eq, and, or, sql, desc } from "drizzle-orm";
@@ -17,6 +21,7 @@ import {
   teamMembers,
   TeamMemberRole,
   LessonProgressStatus,
+  UserRole,
 } from "~/db/schema";
 
 function getAllUsers() {
@@ -227,13 +232,28 @@ export default function AppLayout({ loaderData }: Route.ComponentProps) {
     isTeamAdmin: userIsTeamAdmin,
   } = loaderData;
 
+  // PROTOTYPE (notifications #8): throwaway bell / inbox / toast variants.
+  const protoRole: RoleKey = !currentUser
+    ? "none"
+    : currentUser.role === UserRole.Admin
+      ? "admin"
+      : currentUser.role === UserRole.Instructor
+        ? "instructor"
+        : userIsTeamAdmin
+          ? "team-admin"
+          : "student";
+  const proto = useNotificationsPrototype(protoRole);
+
   return (
     <div className="flex h-screen overflow-hidden">
       <Sidebar
         currentUser={currentUser}
         recentCourses={recentCourses}
         isTeamAdmin={userIsTeamAdmin}
+        headerSlot={proto.headerSlot}
+        navSlot={proto.navSlot}
       />
+      {proto.overlay}
       <main className="flex-1 overflow-y-auto">
         <Outlet />
       </main>
