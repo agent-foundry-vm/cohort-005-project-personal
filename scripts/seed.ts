@@ -72,6 +72,8 @@ async function seed() {
 
   // Drop and recreate tables for a clean seed
   sqlite.exec(`
+    DROP TABLE IF EXISTS bookmarks;
+    DROP TABLE IF EXISTS notes;
     DROP TABLE IF EXISTS comments;
     DROP TABLE IF EXISTS course_ratings;
     DROP TABLE IF EXISTS video_watch_events;
@@ -2001,6 +2003,66 @@ This course is still in draft while the cluster examples are rewritten against t
     `Created ${countRows(schema.comments)} lesson comments across ${countRows(schema.comments, isNull(schema.comments.parentId))} threads.`
   );
 
+  // ─── Bookmarks and Notes ───
+  // Emma (students[0]) has a few of each across both courses, so her Saved page
+  // has rows in both lists and in a mix of ages. Another student has one of
+  // each, to show the Saved page only ever lists the signed-in Student's rows.
+
+  db.insert(schema.bookmarks)
+    .values([
+      {
+        userId: students[0].id,
+        lessonId: course1LessonIds[2],
+        createdAt: daysAgo(30),
+      },
+      {
+        userId: students[0].id,
+        lessonId: course1LessonIds[9],
+        createdAt: daysAgo(12),
+      },
+      {
+        userId: students[0].id,
+        lessonId: course2LessonIds[1],
+        createdAt: daysAgo(3),
+      },
+      {
+        userId: students[2].id,
+        lessonId: course1LessonIds[4],
+        createdAt: daysAgo(8),
+      },
+    ])
+    .run();
+
+  db.insert(schema.notes)
+    .values([
+      {
+        userId: students[0].id,
+        lessonId: course1LessonIds[2],
+        body: "Use `npx tsc`, not a global install.\n\n# This stays a hash, not a heading.",
+        createdAt: daysAgo(30),
+        updatedAt: daysAgo(29),
+      },
+      {
+        userId: students[0].id,
+        lessonId: course2LessonIds[1],
+        body: "Re-read the status code table before the quiz.",
+        createdAt: daysAgo(4),
+        updatedAt: daysAgo(2),
+      },
+      {
+        userId: students[2].id,
+        lessonId: course1LessonIds[4],
+        body: "Ask about generics constraints.",
+        createdAt: daysAgo(8),
+        updatedAt: daysAgo(8),
+      },
+    ])
+    .run();
+
+  console.log(
+    `Created ${countRows(schema.bookmarks)} bookmarks and ${countRows(schema.notes)} notes.`
+  );
+
   // ─── Lesson Progress ───
 
   // Helper to mark lessons as complete
@@ -2847,6 +2909,9 @@ This course is still in draft while the cluster examples are rewritten against t
   console.log(`  Enrollments: ${countRows(schema.enrollments)}`);
   console.log(`  Course ratings: ${countRows(schema.courseRatings)}`);
   console.log(`  Lesson comments: ${countRows(schema.comments)}`);
+  console.log(
+    `  Bookmarks: ${countRows(schema.bookmarks)}, notes: ${countRows(schema.notes)}`
+  );
   console.log(
     `  Lesson progress: ${countRows(schema.lessonProgress)} (${countRows(schema.lessonProgress, eq(schema.lessonProgress.status, LessonProgressStatus.Completed))} completed)`
   );
