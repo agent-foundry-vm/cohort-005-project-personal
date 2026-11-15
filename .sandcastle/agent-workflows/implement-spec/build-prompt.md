@@ -19,6 +19,9 @@ Read CODING_STANDARDS.md.
   rejects a commit, fix the work and commit again. The hook stays as it is:
   no `--no-verify`, no edits to `.husky/`, `scripts/pre-commit.sh` or
   `core.hooksPath`.
+- When the pre-commit token check forces a file split, the split is its own
+  move-only commit, before the change: moved lines unchanged, no behaviour
+  change in it.
 - Finish with at least one commit and a clean working tree; without one, the
   ticket is parked for a person. The workflow pushes and opens the pull
   request.
