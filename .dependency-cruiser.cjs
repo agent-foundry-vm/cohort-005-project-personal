@@ -74,7 +74,11 @@ module.exports = {
         "No dependency cycles. Scope to `^${R}/` if you want to allow cycles outside packages.",
       severity: "error",
       from: {},
-      to: { circular: true },
+      to: {
+        circular: true,
+        dependencyTypesNot: ["type-only"],
+        viaOnly: { dependencyTypesNot: ["type-only"] },
+      },
     },
 
     // --- Layering (optional, off by default) ----------------------------------
@@ -106,6 +110,14 @@ module.exports = {
       to: { path: DB_CONNECTION },
     },
     {
+      name: "modules-no-components",
+      comment:
+        "A module may not depend on a UI component, not even for a type. Types a component needs live in the module, and the component imports them.",
+      severity: "error",
+      from: { path: `^${R}/` },
+      to: { path: "^app/components/" },
+    },
+    {
       name: "module-lib-no-db-connection",
       comment:
         "A module's lib/ takes the database as an argument, so its tests can pass a test database. Only the module's entry points bind the real connection. Importing the schema is fine.",
@@ -116,6 +128,11 @@ module.exports = {
   ],
   options: {
     doNotFollow: { path: "node_modules" },
+    // Keep type-only imports in the graph, marked "type-only", so a rule like
+    // modules-no-components also catches `import type`. TypeScript erases
+    // them, but they still point a dependency the wrong way. no-circular
+    // leaves them out, as it did before this was on.
+    tsPreCompilationDeps: "specify",
     tsConfig: { fileName: "tsconfig.json" },
     enhancedResolveOptions: {
       extensions: [".ts", ".tsx", ".js", ".jsx", ".json"],
