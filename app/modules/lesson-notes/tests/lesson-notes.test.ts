@@ -97,13 +97,19 @@ describe("saveNoteSchema", () => {
     });
   });
 
-  it("rejects a body of only whitespace", () => {
-    expect(saveNoteSchema.safeParse({ body: "   " }).success).toBe(false);
+  it("rejects a body of only whitespace, asking for something to save", () => {
+    const result = saveNoteSchema.safeParse({ body: "   " });
+    expect(result.error?.issues[0].message).toBe(
+      "Write something before saving your note."
+    );
   });
 
   it("accepts exactly the maximum length and rejects one more", () => {
     const max = "a".repeat(MAX_NOTE_LENGTH);
     expect(saveNoteSchema.safeParse({ body: max }).success).toBe(true);
-    expect(saveNoteSchema.safeParse({ body: `${max}a` }).success).toBe(false);
+    const over = saveNoteSchema.safeParse({ body: `${max}a` });
+    expect(over.error?.issues[0].message).toBe(
+      `Your note is over ${MAX_NOTE_LENGTH.toLocaleString("en")} characters, so it was not saved.`
+    );
   });
 });
