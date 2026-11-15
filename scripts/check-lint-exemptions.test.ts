@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
-import { checkExemptions } from "./check-lint-exemptions";
+import { checkExemptions, parseJsonc } from "./check-lint-exemptions";
 
 const HEAD = `{
   // A comment, and a glob that looks like one: **/*.test.ts
@@ -68,6 +68,15 @@ describe("checkExemptions", () => {
       { list: "max-depth", entry: "**/*.test.ts" },
       { list: "max-depth", entry: "**/*.test.tsx" },
     ]);
+  });
+});
+
+describe("parseJsonc", () => {
+  it.each([
+    ["an unterminated comment", `{ "a": 1 /* x`],
+    ["an unterminated string", `{ "a": "x`],
+  ])("throws on %s instead of hanging", (_, text) => {
+    expect(() => parseJsonc(text)).toThrow(SyntaxError);
   });
 });
 

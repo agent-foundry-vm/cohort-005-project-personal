@@ -36,7 +36,9 @@ export function parseJsonc(text: string): unknown {
       const end = text.indexOf("\n", i);
       i = end === -1 ? text.length : end;
     } else if (text.startsWith("/*", i)) {
-      i = text.indexOf("*/", i + 2) + 2;
+      const end = text.indexOf("*/", i + 2);
+      if (end === -1) throw new SyntaxError("Unterminated comment in JSONC");
+      i = end + 2;
     } else {
       // A comma right before a closing bracket is a trailing comma.
       if (char === "}" || char === "]") out = out.replace(/,\s*$/, "");
@@ -50,7 +52,10 @@ export function parseJsonc(text: string): unknown {
 // The index just past the closing quote of the string that starts at `start`.
 function endOfString(text: string, start: number): number {
   let i = start + 1;
-  while (text[i] !== '"') i += text[i] === "\\" ? 2 : 1;
+  while (text[i] !== '"') {
+    if (i >= text.length) throw new SyntaxError("Unterminated string in JSONC");
+    i += text[i] === "\\" ? 2 : 1;
+  }
   return i + 1;
 }
 
@@ -86,7 +91,14 @@ When you are done, run \`npm run check\` and commit again.`;
 if (import.meta.main) {
   const head = readAtRevision("HEAD:", CONFIG);
   const staged = readAtRevision(":", CONFIG);
-  const added = head && staged ? checkExemptions(head, staged) : [];
+  let added: AddedEntry[] = [];
+  try {
+    added = head && staged ? checkExemptions(head, staged) : [];
+  } catch (error) {
+    console.error(`Could not read ${CONFIG}: ${String(error)}
+Fix the syntax of the staged file and commit again.`);
+    process.exit(1);
+  }
   if (added.length > 0) {
     console.error(formatFailure(added));
     process.exit(1);
