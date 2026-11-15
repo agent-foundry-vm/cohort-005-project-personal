@@ -36,6 +36,16 @@ covering what the page shows. `npm run lint:boundaries` enforces this for the
 instructor analytics route only; apply it to every other module by hand. See
 [app/modules/README.md](./app/modules/README.md).
 
+## A module owns a feature, not a page
+
+A module whose entry points each wrap one query is shallow: those queries
+belong in the module that owns the data. A module named after a route is a
+sign it is shallow. It adds an interface without hiding anything, and it
+splits the data owner's rules across two modules. The `lesson-page` module
+followed every layout rule and was still four root files of thin query
+wrappers named after a page. For what makes a module deep, see
+[app/modules/README.md](./app/modules/README.md).
+
 ## Arrange tests through the module under test
 
 Test setup calls the module's own functions. When the function you need does
