@@ -88,6 +88,9 @@
     "vitest/no-focused-tests": "error",
     "sql/no-dynamic-raw": "error"
   },
+  // Every `files` list below is a lint exemption list, and these lists can
+  // only shrink: scripts/check-lint-exemptions.ts fails a commit that adds a
+  // path to one. To pass a rule, split the function or the file instead.
   "overrides": [
     {
       "files": [
@@ -121,6 +124,7 @@
       }
     },
     // Files already over a size limit. Remove each entry once the file is split.
+    // Never add one.
     {
       "files": [
         "app/lib/comments.server.test.ts",
