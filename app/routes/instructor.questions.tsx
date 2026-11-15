@@ -177,7 +177,7 @@ type Question = Awaited<ReturnType<typeof loader>>["questions"][number];
 function QuestionCard({ question }: { question: Question }) {
   const fetcher = useFetcher<{ ok?: boolean; error?: string }>();
   const [body, setBody] = useState("");
-  const waitingDays = daysSince(question.createdAt);
+  const waitingDays = daysSince(question.createdAt, new Date());
   const stale = waitingDays >= STALE_AFTER_DAYS;
   const submitting = fetcher.state !== "idle";
 
@@ -237,7 +237,7 @@ function QuestionCard({ question }: { question: Question }) {
                 className="text-xs text-muted-foreground"
                 suppressHydrationWarning
               >
-                {formatRelativeTime(question.createdAt)}
+                {formatRelativeTime(question.createdAt, new Date())}
               </span>
             </div>
             <div

@@ -80,7 +80,7 @@ export default function Saved({ loaderData }: Route.ComponentProps) {
                     suppressHydrationWarning
                     className="text-xs text-muted-foreground"
                   >
-                    Edited {formatRelativeTime(note.updatedAt)}
+                    Edited {formatRelativeTime(note.updatedAt, new Date())}
                   </p>
                 </SavedLessonCard>
               ))}
