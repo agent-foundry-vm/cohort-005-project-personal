@@ -8,6 +8,7 @@ import { checkExemptions, parseJsonc } from "./check-lint-exemptions";
 
 const HEAD = `{
   // A comment, and a glob that looks like one: **/*.test.ts
+  "ignorePatterns": ["drizzle/**", ".agents/**"],
   "rules": { "max-lines": ["error", { "max": 500 }] },
   "overrides": [
     {
@@ -115,6 +116,41 @@ describe("checkExemptions", () => {
       { list: "max-depth", entry: "app/routes/c.tsx" },
     ]);
   });
+
+  it("reports a pattern added to ignorePatterns as exempt from all rules", () => {
+    const staged = HEAD.replace(
+      `".agents/**"]`,
+      `".agents/**", "app/routes/**"]`
+    );
+
+    expect(checkExemptions(HEAD, staged)).toEqual([
+      { list: "all rules", entry: "app/routes/**" },
+    ]);
+  });
+
+  it("reports ignorePatterns added to a config that had none", () => {
+    const before = HEAD.replace(
+      `"ignorePatterns": ["drizzle/**", ".agents/**"],`,
+      ""
+    );
+
+    expect(checkExemptions(before, HEAD)).toEqual([
+      { list: "all rules", entry: ".agents/**" },
+      { list: "all rules", entry: "drizzle/**" },
+    ]);
+  });
+
+  it.each([
+    ["removed", `"ignorePatterns": ["drizzle/**"],`],
+    ["dropped", ""],
+  ])("passes when ignorePatterns is %s", (_, replacement) => {
+    const staged = HEAD.replace(
+      `"ignorePatterns": ["drizzle/**", ".agents/**"],`,
+      replacement
+    );
+
+    expect(checkExemptions(HEAD, staged)).toEqual([]);
+  });
 });
 
 // HEAD with one more override, for app/routes/c.tsx, that sets `rules`.
@@ -190,6 +226,15 @@ describe("node scripts/check-lint-exemptions.ts", () => {
 
     expect(result.status).toBe(0);
     expect(result.stderr).toBe("");
+  });
+
+  it("fails a staged config that adds an ignore pattern, naming the pattern", () => {
+    const result = stageAndRun(
+      HEAD.replace(`".agents/**"]`, `".agents/**", "app/routes/**"]`)
+    );
+
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain("app/routes/**: all rules");
   });
 
   it("passes a staged config that removes a path", () => {

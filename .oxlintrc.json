@@ -5,6 +5,8 @@
   "categories": {
     "correctness": "error"
   },
+  // Paths oxlint does not lint at all. This list can only shrink:
+  // scripts/check-lint-exemptions.ts fails a commit that adds a pattern to it.
   "ignorePatterns": ["drizzle/**", ".agents/**", ".claude/**"],
   "rules": {
     // Correctness rules that go beyond the coding standards.
