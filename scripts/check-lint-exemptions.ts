@@ -1,6 +1,8 @@
 // Fails a commit that adds a path to an override in the oxlint config that
-// turns a rule off or down to a warning for that path. Each such rule's paths
-// are an exemption list, and these lists can only shrink. Removing a path
+// turns a rule off or down to a warning for that path, or adds a pattern to
+// the top-level ignorePatterns, which exempts its paths from all rules. Each
+// such rule's paths, and ignorePatterns, are an exemption list, and these
+// lists can only shrink. Removing a path
 // passes, and so does an override that keeps a rule at "error", even with
 // other options: tightening a rule is not an exemption. Numeric limits are
 // not compared with the top-level setting, so ["error", 9] counts as error.
@@ -18,7 +20,11 @@ import {
 
 const CONFIG = ".oxlintrc.json";
 
+// The list that the top-level ignorePatterns are reported under.
+const IGNORED = "all rules";
+
 type OxlintConfig = {
+  ignorePatterns?: string[];
   overrides?: { files?: string[]; rules?: Record<string, unknown> }[];
 };
 
@@ -71,9 +77,13 @@ function loosens(setting: unknown): boolean {
 }
 
 // One list per rule: the paths that some override loosens that rule for.
+// The ignorePatterns are one more list, for all rules.
 function exemptionLists(text: string): Allowlists {
   const config = parseJsonc(text) as OxlintConfig;
   const lists: Allowlists = new Map();
+  for (const pattern of config.ignorePatterns ?? []) {
+    addEntry(lists, IGNORED, pattern);
+  }
   for (const override of config.overrides ?? []) {
     for (const [rule, setting] of Object.entries(override.rules ?? {})) {
       if (!loosens(setting)) continue;
@@ -93,9 +103,10 @@ export function formatFailure(added: AddedEntry[]): string {
 
 ${lines.join("\n")}
 
-The exemption lists can only shrink. Take each path out of the override and
-fix the code instead: split the function or the file until the rule passes.
-Do not move the path to another override, and do not loosen the rule.
+The exemption lists can only shrink. Take each path out of the override (or
+out of ignorePatterns, for "${IGNORED}") and fix the code instead: split the
+function or the file until the rule passes. Do not move the path to another
+override or to ignorePatterns, and do not loosen the rule.
 
 When you are done, run \`npm run check\` and commit again.`;
 }
