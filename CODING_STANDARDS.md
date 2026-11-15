@@ -97,7 +97,10 @@ files and `"Pending"` in one.
 
 A function that calls `Date.now()` cannot be tested at a fixed moment. Take
 the time as an argument. The refund window tests failed every night at
-midnight until we did this.
+midnight until we did this. oxlint enforces it in non-test files under
+`app/modules/` and `app/lib/`: the `clock/no-ambient` rule
+(`lint-rules/clock.js`) reports `new Date()` with no arguments and
+`Date.now()`.
 
 ## Keep secrets on the server
 
