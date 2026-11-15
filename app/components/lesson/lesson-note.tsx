@@ -46,7 +46,8 @@ export function LessonNote({ note }: { note: SavedNote | null }) {
               draft.tooLong ? "text-destructive" : "text-muted-foreground"
             )}
           >
-            {draft.length} / {draft.max}
+            {draft.length.toLocaleString("en")} /{" "}
+            {draft.max.toLocaleString("en")}
           </span>
         </div>
 
@@ -66,6 +67,12 @@ function NoteStatusText({ status }: { status: NoteStatus }) {
       );
     case "error":
       return <span className="text-xs text-destructive">{status.message}</span>;
+    case "emptied":
+      return (
+        <span className="text-xs text-muted-foreground">
+          Write something before saving your note.
+        </span>
+      );
     case "unsaved":
       return (
         <span className="text-xs text-muted-foreground">Unsaved changes</span>

@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { MAX_NOTE_LENGTH } from "~/lib/notes";
-import { describeNoteDraft } from "../index";
+import { describeNoteDraft, saveNoteSchema } from "../index";
 
 const SAVED = {
   body: "Rewatch at 4:20",
@@ -50,10 +50,16 @@ describe("describeNoteDraft", () => {
     expect(draft.status).toEqual({ kind: "unsaved" });
   });
 
-  it("cannot clear a saved Note to nothing", () => {
+  it("cannot clear a saved Note to nothing, and says why", () => {
     const draft = describeNoteDraft("", SAVED);
     expect(draft.canSave).toBe(false);
-    expect(draft.status).toEqual({ kind: "unsaved" });
+    expect(draft.status).toEqual({ kind: "emptied" });
+  });
+
+  it("treats a saved Note cleared to whitespace as emptied", () => {
+    expect(describeNoteDraft("  \n ", SAVED).status).toEqual({
+      kind: "emptied",
+    });
   });
 
   it("accepts a draft of exactly the maximum length", () => {
@@ -81,5 +87,23 @@ describe("describeNoteDraft", () => {
       "Could not save"
     );
     expect(draft.status.kind).toBe("too-long");
+  });
+});
+
+describe("saveNoteSchema", () => {
+  it("trims the body it accepts", () => {
+    expect(saveNoteSchema.parse({ body: "  Note  " })).toEqual({
+      body: "Note",
+    });
+  });
+
+  it("rejects a body of only whitespace", () => {
+    expect(saveNoteSchema.safeParse({ body: "   " }).success).toBe(false);
+  });
+
+  it("accepts exactly the maximum length and rejects one more", () => {
+    const max = "a".repeat(MAX_NOTE_LENGTH);
+    expect(saveNoteSchema.safeParse({ body: max }).success).toBe(true);
+    expect(saveNoteSchema.safeParse({ body: `${max}a` }).success).toBe(false);
   });
 });
