@@ -44,7 +44,14 @@ change to how the module stores its data leaves its tests alone.
 
 ## Keep files under 5000 tokens
 
-Keep every file under 5000 tokens.
+Keep every file under 5000 tokens. The pre-commit hook enforces it
+(`scripts/check-file-tokens.js`).
+
+When a change has to touch a file over the limit, split the file first, in a
+move-only commit, then make the change in the commits after it. A reviewer can
+check a move line for line and a change on its own, but not the two mixed. (PR
+#65: the token check forced a 1,400-line route split halfway through a UI
+ticket, and the reviewer couldn't tell moved code from changed code.)
 
 ## Wrap related writes in a transaction
 
