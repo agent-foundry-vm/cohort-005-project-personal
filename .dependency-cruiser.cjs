@@ -23,6 +23,9 @@ const R = PACKAGES_ROOT;
  */
 const PACKAGE_INTERNALS = `^${R}/[^/]+/[^/]+/`;
 
+/** The database connection. The schema (app/db/schema.ts) is safe anywhere. */
+const DB_CONNECTION = ["^app/db/index\\.ts$", "^node_modules/better-sqlite3/"];
+
 /** @type {import('dependency-cruiser').IConfiguration} */
 module.exports = {
   forbidden: [
@@ -100,9 +103,15 @@ module.exports = {
         "Components ship to the browser, so they may not open the database connection: it pulls better-sqlite3 into the client bundle and breaks hydration. Get data through a loader instead.",
       severity: "error",
       from: { path: "^app/components/" },
-      to: {
-        path: ["^app/db/index\\.ts$", "^node_modules/better-sqlite3/"],
-      },
+      to: { path: DB_CONNECTION },
+    },
+    {
+      name: "module-lib-no-db-connection",
+      comment:
+        "A module's lib/ takes the database as an argument, so its tests can pass a test database. Only the module's entry points bind the real connection. Importing the schema is fine.",
+      severity: "error",
+      from: { path: `^${R}/[^/]+/lib/` },
+      to: { path: DB_CONNECTION },
     },
   ],
   options: {
