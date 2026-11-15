@@ -7,6 +7,9 @@ Review it with the code-review skill, .agents/skills/code-review/SKILL.md:
 - spec: /tmp/review-spec.md
 - standards: CODING_STANDARDS.md
 
+Review a move-only commit as a move: check that the moved lines are unchanged,
+and review the rest of the pull request as the change.
+
 Leave the human reviewer as little as possible. Fix every finding you can on
 `{{BRANCH}}`, and commit each fix through the pre-commit hook. The workflow
 pushes your commits. Leave `.github/` untouched.
