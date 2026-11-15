@@ -69,7 +69,62 @@ describe("checkExemptions", () => {
       { list: "max-depth", entry: "**/*.test.tsx" },
     ]);
   });
+
+  it.each([
+    ["off", `"off"`],
+    ["0", "0"],
+    ["allow", `"allow"`],
+    ["off with options", `["off", 2]`],
+    ["warn", `"warn"`],
+    ["1", "1"],
+    ["warn with options", `["warn", 2]`],
+  ])("reports a new override that sets a rule to %s", (_, setting) => {
+    const staged = withNewOverride(`"max-depth": ${setting}`);
+
+    expect(checkExemptions(HEAD, staged)).toEqual([
+      { list: "max-depth", entry: "app/routes/c.tsx" },
+    ]);
+  });
+
+  it.each([
+    ["error with stricter options", `["error", 2]`],
+    ["error", `"error"`],
+    ["deny", `"deny"`],
+    ["2 with options", "[2, 3]"],
+  ])("passes a new override that sets a rule to %s", (_, setting) => {
+    const staged = withNewOverride(`"max-depth": ${setting}`);
+
+    expect(checkExemptions(HEAD, staged)).toEqual([]);
+  });
+
+  it("reports only the loosened rules of an override that also tightens one", () => {
+    const staged = withNewOverride(
+      `"max-depth": ["error", 2], "max-params": "warn"`
+    );
+
+    expect(checkExemptions(HEAD, staged)).toEqual([
+      { list: "max-params", entry: "app/routes/c.tsx" },
+    ]);
+  });
+
+  it("reports a path whose rule changes from tightened to off", () => {
+    const tightened = withNewOverride(`"max-depth": ["error", 2]`);
+    const loosened = withNewOverride(`"max-depth": "off"`);
+
+    expect(checkExemptions(tightened, loosened)).toEqual([
+      { list: "max-depth", entry: "app/routes/c.tsx" },
+    ]);
+  });
 });
+
+// HEAD with one more override, for app/routes/c.tsx, that sets `rules`.
+function withNewOverride(rules: string): string {
+  return HEAD.replace(
+    `/* Files already over a size limit. */`,
+    `{ "files": ["app/routes/c.tsx"], "rules": { ${rules} } },
+    /* Files already over a size limit. */`
+  );
+}
 
 describe("parseJsonc", () => {
   it.each([
@@ -128,6 +183,13 @@ describe("node scripts/check-lint-exemptions.ts", () => {
     expect(result.status).toBe(1);
     expect(result.stderr).toContain("app/routes/c.tsx: max-lines");
     expect(result.stderr).toContain("app/routes/c.tsx: max-params");
+  });
+
+  it("passes a staged config that tightens a rule for a new path", () => {
+    const result = stageAndRun(withNewOverride(`"max-depth": ["error", 2]`));
+
+    expect(result.status).toBe(0);
+    expect(result.stderr).toBe("");
   });
 
   it("passes a staged config that removes a path", () => {
