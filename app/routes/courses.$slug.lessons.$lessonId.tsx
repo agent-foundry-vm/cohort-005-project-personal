@@ -189,7 +189,6 @@ export async function loader({ params, request }: Route.LoaderArgs) {
     // Progress is recorded only for people who can take the course, so a
     // Student under a Country Lock gets none.
     if (take.allowed) {
-      // Mark lesson as in-progress when viewed
       markLessonInProgress(currentUserId, lessonId);
       const progress = getLessonProgress(currentUserId, lessonId);
       lessonStatus = progress?.status ?? null;
@@ -233,7 +232,6 @@ export async function loader({ params, request }: Route.LoaderArgs) {
     ? await renderMarkdown(lesson.content)
     : null;
 
-  // Build prev/next navigation
   const allLessons = flattenCourseLessons(courseWithDetails);
   const currentIndex = allLessons.findIndex((l) => l.id === lessonId);
   const prevLesson = currentIndex > 0 ? allLessons[currentIndex - 1] : null;
