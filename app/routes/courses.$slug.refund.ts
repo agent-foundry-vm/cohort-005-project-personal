@@ -70,7 +70,7 @@ export async function action({ params, request }: Route.ActionArgs) {
     throw data(result.error, { status: result.status });
   }
 
-  await sendEmail(result.email);
+  await sendEmail(result.email, new Date());
 
   return redirect(result.kind === "team_licence" ? "/team" : "/settings");
 }
