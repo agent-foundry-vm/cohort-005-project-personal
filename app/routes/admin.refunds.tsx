@@ -102,7 +102,7 @@ export async function action({ request }: Route.ActionArgs) {
     return data({ error: result.error }, { status: result.status });
   }
 
-  await sendEmail(result.email);
+  await sendEmail(result.email, new Date());
 
   return {
     success: true,

@@ -253,7 +253,7 @@ function CommentItem({
               className="text-xs text-muted-foreground"
               suppressHydrationWarning
             >
-              {formatRelativeTime(comment.createdAt)}
+              {formatRelativeTime(comment.createdAt, new Date())}
             </span>
             {comment.editedAt && (
               <span

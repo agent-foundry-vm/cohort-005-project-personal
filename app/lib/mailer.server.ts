@@ -13,7 +13,7 @@ export type Email = {
 };
 
 export type MailTransport = {
-  send(email: Email): Promise<void>;
+  send(email: Email, sentAt: Date): Promise<void>;
 };
 
 const FROM_ADDRESS = "Cadence <hello@cadence.dev>";
@@ -48,9 +48,9 @@ export function postmarkTransport(serverToken: string): MailTransport {
 
 export function outboxTransport(directory: string): MailTransport {
   return {
-    async send(email) {
+    async send(email, sentAt) {
       mkdirSync(directory, { recursive: true });
-      const file = join(directory, `${Date.now()}-${email.to}.json`);
+      const file = join(directory, `${sentAt.getTime()}-${email.to}.json`);
       writeFileSync(
         file,
         JSON.stringify({ from: FROM_ADDRESS, ...email }, null, 2)
@@ -66,7 +66,8 @@ function defaultTransport(): MailTransport {
 
 export async function sendEmail(
   email: Email,
+  now: Date,
   transport: MailTransport = defaultTransport()
 ): Promise<void> {
-  await transport.send(email);
+  await transport.send(email, now);
 }
