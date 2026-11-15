@@ -1,7 +1,9 @@
-// Fails a commit that adds a path to any `files` list in the oxlint config's
-// overrides. Each override turns rules off (or down) for its files, so each
-// list is an exemption list, and these lists can only shrink. Removing a path
-// passes.
+// Fails a commit that adds a path to an override in the oxlint config that
+// turns a rule off or down to a warning for that path. Each such rule's paths
+// are an exemption list, and these lists can only shrink. Removing a path
+// passes, and so does an override that keeps a rule at "error", even with
+// other options: tightening a rule is not an exemption. Numeric limits are
+// not compared with the top-level setting, so ["error", 9] counts as error.
 // lint-staged runs this only when .oxlintrc.json is staged, so other commits
 // pay nothing for it.
 // Usage: node scripts/check-lint-exemptions.ts
@@ -59,12 +61,22 @@ function endOfString(text: string, start: number): number {
   return i + 1;
 }
 
-// One list per rule: the paths that some override sets that rule for.
+// The severities that turn a rule off or down to a warning.
+const LOOSE_SEVERITIES: unknown[] = ["off", "allow", 0, "warn", 1];
+
+// A rule setting is a severity, or an array whose first item is the severity.
+function loosens(setting: unknown): boolean {
+  const severity = Array.isArray(setting) ? setting[0] : setting;
+  return LOOSE_SEVERITIES.includes(severity);
+}
+
+// One list per rule: the paths that some override loosens that rule for.
 function exemptionLists(text: string): Allowlists {
   const config = parseJsonc(text) as OxlintConfig;
   const lists: Allowlists = new Map();
   for (const override of config.overrides ?? []) {
-    for (const rule of Object.keys(override.rules ?? {})) {
+    for (const [rule, setting] of Object.entries(override.rules ?? {})) {
+      if (!loosens(setting)) continue;
       for (const path of override.files ?? []) addEntry(lists, rule, path);
     }
   }
