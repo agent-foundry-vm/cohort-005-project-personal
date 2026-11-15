@@ -3,15 +3,17 @@ import { useState, useEffect } from "react";
 import { cn } from "~/lib/utils";
 import { UserRole } from "~/db/schema";
 import { UserAvatar } from "~/components/user-avatar";
+import { NotificationBell } from "~/components/notification-feed";
 import {
+  Bookmark,
   BookOpen,
   ChartColumn,
   LayoutDashboard,
   GraduationCap,
   MessageSquare,
-  ReceiptText,
   Shield,
   Tag,
+  Receipt,
   Users,
   UsersRound,
   Moon,
@@ -20,14 +22,14 @@ import {
   Settings,
 } from "lucide-react";
 
-interface CurrentUser {
+type CurrentUser = {
   id: number;
   name: string;
   role: UserRole;
   avatarUrl: string | null;
-}
+};
 
-interface RecentCourse {
+type RecentCourse = {
   courseId: number;
   title: string;
   slug: string;
@@ -35,20 +37,20 @@ interface RecentCourse {
   completedLessons: number;
   totalLessons: number;
   progress: number;
-}
+};
 
-interface SidebarProps {
+type SidebarProps = {
   currentUser: CurrentUser | null;
   recentCourses?: RecentCourse[];
   isTeamAdmin?: boolean;
-}
+};
 
-interface NavItem {
+type NavItem = {
   label: string;
   to: string;
   icon: React.ReactNode;
   roles: UserRole[] | "all";
-}
+};
 
 const navItems: NavItem[] = [
   {
@@ -61,6 +63,12 @@ const navItems: NavItem[] = [
     label: "Dashboard",
     to: "/dashboard",
     icon: <LayoutDashboard className="size-4" />,
+    roles: [UserRole.Student],
+  },
+  {
+    label: "Saved",
+    to: "/saved",
+    icon: <Bookmark className="size-4" />,
     roles: [UserRole.Student],
   },
   {
@@ -102,7 +110,7 @@ const navItems: NavItem[] = [
   {
     label: "Refund Requests",
     to: "/admin/refunds",
-    icon: <ReceiptText className="size-4" />,
+    icon: <Receipt className="size-4" />,
     roles: [UserRole.Admin],
   },
 ];
@@ -136,10 +144,11 @@ export function Sidebar({
 
   return (
     <aside className="flex h-screen w-56 shrink-0 flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground">
-      <div className="flex h-14 items-center border-b border-sidebar-border px-4">
+      <div className="flex h-14 items-center justify-between border-b border-sidebar-border px-4">
         <NavLink to="/" className="text-lg font-bold tracking-tight">
           Cadence
         </NavLink>
+        {currentUser && <NotificationBell />}
       </div>
 
       <nav className="flex-1 space-y-1 p-3">
