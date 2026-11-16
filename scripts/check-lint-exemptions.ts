@@ -1,7 +1,11 @@
-// Fails a commit that adds a path to any `files` list in the oxlint config's
-// overrides. Each override turns rules off (or down) for its files, so each
-// list is an exemption list, and these lists can only shrink. Removing a path
-// passes.
+// Fails a commit that adds a path to an override in the oxlint config that
+// turns a rule off or down to a warning for that path, or adds a pattern to
+// the top-level ignorePatterns, which exempts its paths from all rules. Each
+// such rule's paths, and ignorePatterns, are an exemption list, and these
+// lists can only shrink. Removing a path
+// passes, and so does an override that keeps a rule at "error", even with
+// other options: tightening a rule is not an exemption. Numeric limits are
+// not compared with the top-level setting, so ["error", 9] counts as error.
 // lint-staged runs this only when .oxlintrc.json is staged, so other commits
 // pay nothing for it.
 // Usage: node scripts/check-lint-exemptions.ts
@@ -16,7 +20,11 @@ import {
 
 const CONFIG = ".oxlintrc.json";
 
+// The list that the top-level ignorePatterns are reported under.
+const IGNORED = "all rules";
+
 type OxlintConfig = {
+  ignorePatterns?: string[];
   overrides?: { files?: string[]; rules?: Record<string, unknown> }[];
 };
 
@@ -59,12 +67,26 @@ function endOfString(text: string, start: number): number {
   return i + 1;
 }
 
-// One list per rule: the paths that some override sets that rule for.
+// The severities that turn a rule off or down to a warning.
+const LOOSE_SEVERITIES: unknown[] = ["off", "allow", 0, "warn", 1];
+
+// A rule setting is a severity, or an array whose first item is the severity.
+function loosens(setting: unknown): boolean {
+  const severity = Array.isArray(setting) ? setting[0] : setting;
+  return LOOSE_SEVERITIES.includes(severity);
+}
+
+// One list per rule: the paths that some override loosens that rule for.
+// The ignorePatterns are one more list, for all rules.
 function exemptionLists(text: string): Allowlists {
   const config = parseJsonc(text) as OxlintConfig;
   const lists: Allowlists = new Map();
+  for (const pattern of config.ignorePatterns ?? []) {
+    addEntry(lists, IGNORED, pattern);
+  }
   for (const override of config.overrides ?? []) {
-    for (const rule of Object.keys(override.rules ?? {})) {
+    for (const [rule, setting] of Object.entries(override.rules ?? {})) {
+      if (!loosens(setting)) continue;
       for (const path of override.files ?? []) addEntry(lists, rule, path);
     }
   }
@@ -81,9 +103,10 @@ export function formatFailure(added: AddedEntry[]): string {
 
 ${lines.join("\n")}
 
-The exemption lists can only shrink. Take each path out of the override and
-fix the code instead: split the function or the file until the rule passes.
-Do not move the path to another override, and do not loosen the rule.
+The exemption lists can only shrink. Take each path out of the override (or
+out of ignorePatterns, for "${IGNORED}") and fix the code instead: split the
+function or the file until the rule passes. Do not move the path to another
+override or to ignorePatterns, and do not loosen the rule.
 
 When you are done, run \`npm run check\` and commit again.`;
 }

@@ -36,6 +36,16 @@ covering what the page shows. `npm run lint:boundaries` enforces this for the
 instructor analytics route only; apply it to every other module by hand. See
 [app/modules/README.md](./app/modules/README.md).
 
+## A module owns a feature, not a page
+
+A module whose entry points each wrap one query is shallow: those queries
+belong in the module that owns the data. A module named after a route is a
+sign it is shallow. It adds an interface without hiding anything, and it
+splits the data owner's rules across two modules. The `lesson-page` module
+followed every layout rule and was still four root files of thin query
+wrappers named after a page. For what makes a module deep, see
+[app/modules/README.md](./app/modules/README.md).
+
 ## Arrange tests through the module under test
 
 Test setup calls the module's own functions. When the function you need does
@@ -44,7 +54,14 @@ change to how the module stores its data leaves its tests alone.
 
 ## Keep files under 5000 tokens
 
-Keep every file under 5000 tokens.
+Keep every file under 5000 tokens. The pre-commit hook enforces it
+(`scripts/check-file-tokens.js`).
+
+When a change has to touch a file over the limit, split the file first, in a
+move-only commit, then make the change in the commits after it. A reviewer can
+check a move line for line and a change on its own, but not the two mixed. (PR
+#65: the token check forced a 1,400-line route split halfway through a UI
+ticket, and the reviewer couldn't tell moved code from changed code.)
 
 ## Wrap related writes in a transaction
 
@@ -80,7 +97,10 @@ files and `"Pending"` in one.
 
 A function that calls `Date.now()` cannot be tested at a fixed moment. Take
 the time as an argument. The refund window tests failed every night at
-midnight until we did this.
+midnight until we did this. oxlint enforces it in non-test files under
+`app/modules/` and `app/lib/`: the `clock/no-ambient` rule
+(`lint-rules/clock.js`) reports `new Date()` with no arguments and
+`Date.now()`.
 
 ## Keep secrets on the server
 

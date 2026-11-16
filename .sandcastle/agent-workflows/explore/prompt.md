@@ -15,6 +15,8 @@ Read the GLOSSARY.md to understand the repo before exploring.
 
 Include filenames, and lines of code. Remember that the agent that implements will use your exploration as an input.
 
+Run `node scripts/check-file-tokens.js <file>...` on every file the change will touch. It prints the files over the token limit and exits non-zero; it reads, it doesn't write.
+
 3. DUPLICATES. Confirm a group from the code, not the wording. An issue that is the same bug, root cause or request as an older one gets `duplicate_of` set to the OLDEST (lowest number), which survives. Issues that need separate changes are related, not duplicates: both survive.
 
 4. VERDICT. Give each issue one `tag`. The workflow branches on it.
@@ -30,6 +32,7 @@ Include filenames, and lines of code. Remember that the agent that implements wi
      - the tag, and one line on why;
      - whether the issue's claims hold up against the code, with evidence.
      - the blast radius, in prose: the 2–3 places that matter (modules under app/modules/, routes, tables). A schema change or a migration goes first, and loudly;
+     - when the token check flagged a file, a numbered plan whose step 1 is a move-only split of each flagged file, committed on its own before any behaviour change. Name the file, its token count and the seams to split on. When no file was flagged, add no split step;
      - whether it's a one-way or a two-way door
      - the duplicates closed onto it, crediting by number any detail only they had;
      - last, the open questions a human has to settle. An empty list is a claim, and usually a wrong one.

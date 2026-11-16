@@ -1,10 +1,12 @@
 {
   "$schema": "./node_modules/oxlint/configuration_schema.json",
   "plugins": ["typescript", "react", "jsx-a11y", "import", "vitest"],
-  "jsPlugins": ["./lint-rules/sql-raw.js"],
+  "jsPlugins": ["./lint-rules/sql-raw.js", "./lint-rules/clock.js"],
   "categories": {
     "correctness": "error"
   },
+  // Paths oxlint does not lint at all. This list can only shrink:
+  // scripts/check-lint-exemptions.ts fails a commit that adds a pattern to it.
   "ignorePatterns": ["drizzle/**", ".agents/**", ".claude/**"],
   "rules": {
     // Correctness rules that go beyond the coding standards.
@@ -86,11 +88,15 @@
     "import/no-default-export": "error",
     "vitest/no-disabled-tests": "error",
     "vitest/no-focused-tests": "error",
-    "sql/no-dynamic-raw": "error"
+    "sql/no-dynamic-raw": "error",
+    "clock/no-ambient": "error"
   },
-  // Every `files` list below is a lint exemption list, and these lists can
-  // only shrink: scripts/check-lint-exemptions.ts fails a commit that adds a
-  // path to one. To pass a rule, split the function or the file instead.
+  // An override that sets a rule to "off" or "warn" (or 0, 1, "allow") makes
+  // its `files` list an exemption list for that rule, and these lists can only
+  // shrink: scripts/check-lint-exemptions.ts fails a commit that adds a path
+  // to one. To pass a rule, split the function or the file instead. Only "off"
+  // and "warn" count: an override that keeps a rule at "error" with stricter
+  // options passes, and numeric limits are not compared with the ones above.
   "overrides": [
     {
       "files": [
